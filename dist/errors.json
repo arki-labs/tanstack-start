@@ -1,0 +1,47 @@
+[
+  {
+    "code": "ARKI_TANSTACK_START_PLUGIN_E001",
+    "package": "@arki/tanstack-start",
+    "kind": "thrown",
+    "what": "The cron mount's `secret()` returned an empty or missing value at boot.",
+    "fix": "Set the env var `secret` reads (such as `CRON_SECRET`) on the server, not at build time.",
+    "verify": "bun run test -- src/dot.test.ts",
+    "source": "src/dot.ts:92"
+  },
+  {
+    "code": "ARKI_TANSTACK_START_PLUGIN_E002",
+    "package": "@arki/tanstack-start",
+    "kind": "thrown",
+    "what": "`cors()` returned an origin that is not a bare `scheme://host[:port]`.",
+    "fix": "Remove any path or trailing slash from each origin, such as `https://shop.example`.",
+    "verify": "bun run test -- src/dot.test.ts",
+    "source": "src/dot.ts:99"
+  },
+  {
+    "code": "tanstack_start.internal",
+    "package": "@arki/tanstack-start",
+    "kind": "failure",
+    "what": "A request crashed, or an identity lookup (`rpc`, `session`) threw instead of returning a failure. The cause stays in the logs.",
+    "fix": "Make identity callbacks return `null` or an `@arki/failure` failure for expected outcomes. Read the server log for the crash.",
+    "verify": "bun run test -- src/mounts.test.ts",
+    "source": "src/failures.ts:25"
+  },
+  {
+    "code": "tanstack_start.unauthenticated",
+    "package": "@arki/tanstack-start",
+    "kind": "failure",
+    "what": "A cron call without the right bearer secret. One answer for every cause, so a caller cannot tell a missing header from a wrong scheme or a wrong secret.",
+    "fix": "Send `Authorization: Bearer <the cron secret>`.",
+    "verify": "bun run test -- src/mounts.test.ts",
+    "source": "src/failures.ts:14"
+  },
+  {
+    "code": "tanstack_start.unavailable",
+    "package": "@arki/tanstack-start",
+    "kind": "failure",
+    "what": "The application did not boot, so it cannot serve. Callers should retry later.",
+    "fix": "Read the boot failure in the server log.",
+    "verify": "bun run test -- src/start-server.test.ts",
+    "source": "src/failures.ts:35"
+  }
+]

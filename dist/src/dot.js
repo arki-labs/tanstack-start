@@ -1,0 +1,237 @@
+/**
+ * `@arki/tanstack-start/dot` — the `tanstackStart()` entrypoint plugin and
+ * the one-line server-route handlers.
+ *
+ * `tanstackStart()` provides one service, `tanstackStart`, that builds the
+ * plugin's part of each request's context from its typed `needs`, and the
+ * declared mounts. `startServer(app)` adds `services` and hands the whole
+ * context to Start.
+ *
+ * ```ts
+ * // A driver such as `schedule()` has no `provides` handles: name its service by key.
+ * const scheduler = token<SchedulerProvides['scheduler']>()('scheduler');
+ *
+ * export const app = defineApp('shop')
+ *   .infra(database, authn)
+ *   .features([...features, gateway])
+ *   .entrypoints(
+ *     schedule({ clock: 'host' }),
+ *     tanstackStart({
+ *       needs: { rpc: gateway.provides.rpc, auth: authn.provides.auth, scheduler },
+ *       session: ({ auth }, request) => auth.principal(request.headers),
+ *       rpc: ({ rpc }, request) => rpc.client(request.headers),
+ *       mounts: {
+ *         rpc: { at: '/api/rpc', serve: ({ rpc }, request, prefix) => rpc.handle(request, prefix) },
+ *         auth: { at: '/api/auth', serve: ({ auth }, request) => auth.handler(request) },
+ *         cron: { at: '/api/cron', router: cronRouter, secret: () => env.CRON_SECRET, schedules: ({ scheduler }) => scheduler },
+ *         health: { at: '/api/health' },
+ *       },
+ *       cors: () => ({ origins: [env.VITE_URL], extensions: true }),
+ *     }),
+ *   );
+ * ```
+ *
+ * The needs are checked against the builder: placing `tanstackStart()`
+ * before the plugins that provide them is a compile error. The cron secret
+ * and the CORS options are functions, read when the app boots and never at
+ * import, so `vite build` runs without the server's env.
+ */
+import { createHash, timingSafeEqual } from 'node:crypto';
+import { OpenAPIHandler } from '@orpc/openapi/fetch';
+import { z } from 'zod';
+import { entrypoint } from '@arki/dot';
+import { DotUnitError } from '@arki/dot/unit';
+import { InvalidInput, isFailure } from '@arki/failure';
+import { cronErrorBody } from '@arki/schedule/orpc';
+import { formatIssues, parse } from '@arki/schema';
+import { CronUnauthenticated, failureResponse } from './failures.js';
+import { corsSchema } from './cors.js';
+export { authHandlers, cronHandlers, healthHandlers, rpcHandlers } from './mounts.js';
+const atSchema = z
+    .string()
+    .regex(/^\/.*[^/]$/, 'A mount path starts with "/" and has no trailing slash, like "/api/rpc".');
+/** Every declared `at`, in declaration order: each well formed, no two the same. */
+const mountPathsSchema = z
+    .array(atSchema)
+    .refine(paths => new Set(paths).size === paths.length, 'Two mounts share one path: give each mount its own `at`.');
+const cronSecretSchema = z.string().min(1, 'The cron secret must not be empty.');
+/**
+ * Stable error codes thrown when `tanstackStart()` boots. Match on the code,
+ * never on the message.
+ */
+export const TANSTACK_START_PLUGIN_ERROR_CODES = {
+    /**
+     * The cron mount's `secret()` returned an empty or missing value at boot.
+     *
+     * @fix Set the env var `secret` reads (such as `CRON_SECRET`) on the server, not at build time.
+     * @verify bun run test -- src/dot.test.ts
+     */
+    cronSecretInvalid: 'ARKI_TANSTACK_START_PLUGIN_E001',
+    /**
+     * `cors()` returned an origin that is not a bare `scheme://host[:port]`.
+     *
+     * @fix Remove any path or trailing slash from each origin, such as `https://shop.example`.
+     * @verify bun run test -- src/dot.test.ts
+     */
+    corsInvalid: 'ARKI_TANSTACK_START_PLUGIN_E002',
+};
+/** The coded error that stops the boot when a value read at boot fails its schema. */
+function bootError(failure, error) {
+    const reason = InvalidInput.is(failure) ? formatIssues(failure.data.issues) : failure.message;
+    return new DotUnitError({
+        code: error.code,
+        message: `[tanstack-start] ${error.what}: ${reason}`,
+        remediation: error.remediation,
+        docsUrl: `https://arki.dev/dot/errors/${error.code.toLowerCase().replaceAll('_', '-')}`,
+    });
+}
+const MOUNT_SUMMARIES = {
+    rpc: 'RPC procedures over HTTP (rpcHandlers).',
+    auth: 'Auth endpoints (authHandlers).',
+    cron: 'Host-triggered schedules, bearer-secret protected (cronHandlers).',
+    health: 'Liveness probe (healthHandlers).',
+};
+/** The declared mounts, in a fixed order, with their paths. */
+function declared(mounts) {
+    const entries = [];
+    if (mounts?.rpc !== undefined)
+        entries.push({ name: 'rpc', at: mounts.rpc.at });
+    if (mounts?.auth !== undefined)
+        entries.push({ name: 'auth', at: mounts.auth.at });
+    if (mounts?.cron !== undefined)
+        entries.push({ name: 'cron', at: mounts.cron.at });
+    if (mounts?.health !== undefined)
+        entries.push({ name: 'health', at: mounts.health.at });
+    return entries;
+}
+function mountActions(mounts) {
+    return declared(mounts).map(({ name, at }) => ({
+        id: `tanstack-start.${name}`,
+        binding: 'http',
+        direction: 'in',
+        address: name === 'health' ? at : `${at}/*`,
+        summary: MOUNT_SUMMARIES[name],
+    }));
+}
+/** Only `chrome-extension://` origins count as extensions, as Chromium sends them. */
+const EXTENSION_ORIGIN = 'chrome-extension://';
+function corsPolicy(read) {
+    const options = parse(corsSchema, read?.() ?? { origins: [] });
+    if (isFailure(options)) {
+        throw bootError(options, {
+            code: TANSTACK_START_PLUGIN_ERROR_CODES.corsInvalid,
+            what: 'the CORS options are invalid',
+            remediation: 'List each origin as scheme://host[:port], with no path and no trailing slash.',
+        });
+    }
+    const origins = new Set(options.origins);
+    const extensions = options.extensions ?? false;
+    return {
+        allows: (origin) => origin !== null && (origins.has(origin) || (extensions && origin.startsWith(EXTENSION_ORIGIN))),
+    };
+}
+function digest(value) {
+    return createHash('sha256').update(value).digest();
+}
+/** Constant-time on any length: compare digests, never the raw strings. */
+function sameSecret(provided, expected) {
+    return timingSafeEqual(digest(provided), digest(expected));
+}
+/** Every refusal is the same {@link CronUnauthenticated} envelope: the answer never says which check failed. */
+function cronAuthError(request, secret) {
+    const header = request.headers.get('Authorization');
+    const presented = header?.startsWith('Bearer ') ? header.slice('Bearer '.length) : undefined;
+    if (presented !== undefined && sameSecret(presented, secret))
+        return undefined;
+    return failureResponse(CronUnauthenticated());
+}
+function cronMount(cron, needs) {
+    const secret = parse(cronSecretSchema, cron.secret());
+    if (isFailure(secret)) {
+        throw bootError(secret, {
+            code: TANSTACK_START_PLUGIN_ERROR_CODES.cronSecretInvalid,
+            what: 'the cron secret is missing',
+            remediation: 'Set the env var the cron secret() reads (such as CRON_SECRET) on the server before booting.',
+        });
+    }
+    // Built once per app: the router is static data.
+    const handler = new OpenAPIHandler(cron.router, { customErrorResponseBodyEncoder: cronErrorBody });
+    return {
+        at: cron.at,
+        async serve(request) {
+            const denied = cronAuthError(request, secret);
+            if (denied !== undefined)
+                return denied;
+            const carry = {};
+            // No cron takes input: a stray body is never parsed.
+            const bodyless = new Request(request.url, { method: request.method, headers: request.headers });
+            const { matched, response } = await handler.handle(bodyless, {
+                prefix: cron.at,
+                context: { headers: request.headers, schedules: cron.schedules(needs), carry },
+            });
+            // A failed run leaves oRPC through `carry` and is rethrown, so the host's error reporting sees it.
+            if (carry.rethrow)
+                throw carry.rethrow.cause;
+            return matched ? response : new Response('Not found', { status: 404 });
+        },
+    };
+}
+/** Bind each declared mount to its `at` and to the plugin's needs. */
+function mountHandles(mounts, needs) {
+    const { rpc, auth, cron, health } = mounts ?? {};
+    return {
+        ...(rpc === undefined ? {} : { rpc: { at: rpc.at, serve: async (request) => rpc.serve(needs, request, rpc.at) } }),
+        ...(auth === undefined ? {} : { auth: { at: auth.at, serve: async (request) => auth.serve(needs, request) } }),
+        ...(cron === undefined ? {} : { cron: cronMount(cron, needs) }),
+        ...(health === undefined ? {} : { health: { at: health.at } }),
+    };
+}
+/**
+ * The TanStack Start entrypoint of a Dot app. Provides `tanstackStart`: the
+ * per-request context builder, the CORS policy and the declared mounts.
+ * Declares one manifest action per declared mount, at its `at`, so
+ * `dot explain` lists them. `configure` rejects a bad or repeated mount
+ * path (no I/O). Booting reads the cron secret and the CORS options, and
+ * throws a coded `DotUnitError` when either is bad.
+ *
+ * @example
+ * defineApp('shop')
+ *   .features([gateway])
+ *   .entrypoints(
+ *     tanstackStart({
+ *       needs: { rpc: gateway.provides.rpc },
+ *       session: () => null,
+ *       rpc: ({ rpc }, request) => rpc.client(request.headers),
+ *       mounts: { rpc: { at: '/api/rpc', serve: ({ rpc }, request, prefix) => rpc.handle(request, prefix) } },
+ *     }),
+ *   );
+ */
+export function tanstackStart(options) {
+    const mounts = options.mounts;
+    return entrypoint({
+        name: 'tanstack-start',
+        needs: options.needs,
+        actions: mountActions(mounts),
+        configure() {
+            const paths = parse(mountPathsSchema, declared(mounts).map(mount => mount.at));
+            return isFailure(paths) ? paths : undefined;
+        },
+        provides: {
+            tanstackStart: (needs) => ({
+                async context(request, signal) {
+                    // The memo lives on this request's context only: never shared across requests.
+                    let session;
+                    return {
+                        rpc: await options.rpc(needs, request),
+                        session: () => (session ??= Promise.resolve(options.session(needs, request))),
+                        requestId: crypto.randomUUID(),
+                        signal,
+                    };
+                },
+                cors: corsPolicy(options.cors),
+                mounts: mountHandles(mounts, needs),
+            }),
+        },
+    });
+}
+//# sourceMappingURL=dot.js.map

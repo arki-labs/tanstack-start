@@ -1,0 +1,89 @@
+/// <reference types="vite/client" />
+/// <reference types="vite-plugin-pwa/client" />
+import { getLogger } from '@arki/log';
+const log = getLogger('arki:tanstack-start');
+/**
+ * Register the app's service worker.
+ *
+ * Call this once from `entry-client.tsx` after `hydrateRoot`. Safe to call
+ * in non-browser contexts: the function bails out when `navigator` or the
+ * `serviceWorker` API is unavailable.
+ *
+ * Also installs stale-chunk recovery (see {@link registerStaleChunkReload}),
+ * which runs regardless of service-worker support.
+ *
+ * @example
+ * ```tsx
+ * // apps/myapp/start/src/entry-client.tsx
+ * import { registerPwa } from '@arki/tanstack-start/pwa/client';
+ * registerPwa();
+ * ```
+ */
+export { clearCachesOnUserChange, useClearCachesOnUserChange } from './user-caches.js';
+export function registerPwa(options = {}) {
+    if (typeof window === 'undefined')
+        return;
+    // Stale-chunk recovery must run even when service workers are unavailable
+    // (e.g. private browsing, unsupported browsers), so register it first.
+    registerStaleChunkReload();
+    if (!('serviceWorker' in navigator))
+        return;
+    // `virtual:pwa-register` exists only inside a Vite build. Loading it here,
+    // not at the top of the module, lets this entry import outside Vite too.
+    // A failed load (offline first visit, blocked chunk, build without the PWA
+    // plugin) must not become an unhandled rejection: the app works without
+    // offline support, so log a warning and carry on.
+    void import('virtual:pwa-register')
+        .then(({ registerSW }) => {
+        registerSW({ immediate: true, ...options });
+    })
+        .catch((error) => {
+        log.warn('Service worker registration skipped: virtual:pwa-register failed to load: {error}', {
+            error: error instanceof Error ? error : String(error),
+        });
+    });
+}
+/**
+ * Recover from stale dynamic-import chunks after a deploy.
+ *
+ * Each deploy ships a fresh build whose hashed chunks replace the previous
+ * build's; the old `/assets/<hash>.js` files are deleted. A client still
+ * running the previous document will lazy-load one of those now-missing
+ * chunks, the server returns the HTML fallback (404), and Vite raises a
+ * `vite:preloadError`. We force a single full reload so the browser fetches
+ * the current document and its live chunk hashes.
+ *
+ * A short-lived `sessionStorage` timestamp prevents a reload loop when a
+ * chunk is genuinely gone rather than merely renamed, while still allowing a
+ * later deploy in the same tab to recover.
+ */
+export function registerStaleChunkReload() {
+    if (typeof window === 'undefined')
+        return;
+    if (staleChunkReloadRegistered)
+        return;
+    staleChunkReloadRegistered = true;
+    window.addEventListener('vite:preloadError', () => {
+        const key = 'arki:preload-reload-at';
+        const now = Date.now();
+        let last = 0;
+        try {
+            last = Number(sessionStorage.getItem(key) ?? '0');
+        }
+        catch {
+            // sessionStorage may be unavailable (private mode / quota) — reload once.
+        }
+        // Already attempted very recently: avoid an infinite reload loop.
+        if (now - last < 10_000)
+            return;
+        try {
+            sessionStorage.setItem(key, String(now));
+        }
+        catch {
+            // Ignore storage failures and still recover with a reload.
+        }
+        window.location.reload();
+    });
+}
+let staleChunkReloadRegistered = false;
+//# sourceMappingURL=client.js.map

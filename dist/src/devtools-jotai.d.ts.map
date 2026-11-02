@@ -1,0 +1,1 @@
+{"version":3,"file":"devtools-jotai.d.ts","sourceRoot":"","sources":["../../src/devtools-jotai.tsx"],"names":[],"mappings":"AAsBA,OAAO,KAAK,EAAE,WAAW,EAAE,MAAM,OAAO,CAAC;AAMzC,OAAO,2BAA2B,CAAC;AAMnC,KAAK,UAAU,GAAG,UAAU,CAAC,OAAO,WAAW,CAAC,CAAC;AAEjD,wBAAgB,UAAU,CAAC,EAAE,KAAK,EAAE,EAAE;IAAE,KAAK,CAAC,EAAE,UAAU,CAAA;CAAE,+BAO3D"}

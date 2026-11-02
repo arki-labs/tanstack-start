@@ -1,0 +1,208 @@
+{
+  "name": "@arki/tanstack-start",
+  "version": "0.3.0",
+  "description": "TanStack Start wiring for Arki apps: router and query client defaults, the server entry, typed oRPC client utils and hooks, PWA, devtools and error pages.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/arki-labs/arki.git"
+  },
+  "homepage": "https://arki.dev",
+  "bugs": {
+    "url": "https://github.com/arki-labs/arki/issues"
+  },
+  "keywords": [
+    "arki",
+    "typescript",
+    "tanstack",
+    "tanstack-start",
+    "tanstack-router",
+    "tanstack-query",
+    "orpc",
+    "pwa",
+    "react"
+  ],
+  "type": "module",
+  "sideEffects": [
+    "./dist/src/pwa/sw.js"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "import": "./dist/src/index.js",
+      "browser": "./dist/src/index.js"
+    },
+    "./config": {
+      "types": "./dist/src/app.config.d.ts",
+      "import": "./dist/src/app.config.js",
+      "node": "./dist/src/app.config.js"
+    },
+    "./vite": {
+      "types": "./dist/src/vite.d.ts",
+      "default": "./dist/src/vite.js"
+    },
+    "./server": {
+      "types": "./dist/src/start-server.d.ts",
+      "import": "./dist/src/start-server.js",
+      "node": "./dist/src/start-server.js"
+    },
+    "./dot": {
+      "types": "./dist/src/dot.d.ts",
+      "import": "./dist/src/dot.js",
+      "node": "./dist/src/dot.js"
+    },
+    "./router": {
+      "types": "./dist/src/router.d.ts",
+      "import": "./dist/src/router.js",
+      "browser": "./dist/src/router.js"
+    },
+    "./orpc/client": {
+      "types": "./dist/src/orpc/client.d.ts",
+      "import": "./dist/src/orpc/client.js",
+      "browser": "./dist/src/orpc/client.js"
+    },
+    "./orpc/query": {
+      "types": "./dist/src/orpc/query.d.ts",
+      "import": "./dist/src/orpc/query.js",
+      "browser": "./dist/src/orpc/query.js"
+    },
+    "./orpc/server": {
+      "types": "./dist/src/orpc/server.d.ts",
+      "import": "./dist/src/orpc/server.js",
+      "node": "./dist/src/orpc/server.js"
+    },
+    "./scripts": {
+      "types": "./dist/src/scripts.d.ts",
+      "import": "./dist/src/scripts.js",
+      "browser": "./dist/src/scripts.js"
+    },
+    "./error": {
+      "types": "./dist/src/error.d.ts",
+      "import": "./dist/src/error.js",
+      "browser": "./dist/src/error.js"
+    },
+    "./devtools": {
+      "types": "./dist/src/devtools.d.ts",
+      "import": "./dist/src/devtools.js",
+      "browser": "./dist/src/devtools.js"
+    },
+    "./sentry/client": {
+      "types": "./dist/src/sentry-client.d.ts",
+      "import": "./dist/src/sentry-client.js",
+      "browser": "./dist/src/sentry-client.js"
+    },
+    "./sentry/server": {
+      "types": "./dist/src/sentry-server.d.ts",
+      "import": "./dist/src/sentry-server.js",
+      "node": "./dist/src/sentry-server.js"
+    },
+    "./sentry/bridge": {
+      "types": "./dist/src/sentry-bridge.d.ts",
+      "import": "./dist/src/sentry-bridge.js",
+      "default": "./dist/src/sentry-bridge.js"
+    },
+    "./server-error-overlay": {
+      "types": "./dist/src/server-error-overlay.d.ts",
+      "import": "./dist/src/server-error-overlay.js",
+      "node": "./dist/src/server-error-overlay.js"
+    },
+    "./pwa": {
+      "types": "./dist/src/pwa/index.d.ts",
+      "default": "./dist/src/pwa/index.js"
+    },
+    "./pwa/sw": {
+      "types": "./dist/src/pwa/sw.d.ts",
+      "import": "./dist/src/pwa/sw.js",
+      "browser": "./dist/src/pwa/sw.js"
+    },
+    "./pwa/client": {
+      "types": "./dist/src/pwa/client.d.ts",
+      "import": "./dist/src/pwa/client.js",
+      "browser": "./dist/src/pwa/client.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist/**",
+    "docs/**",
+    "llms.txt",
+    "CHANGELOG.md",
+    "README.md",
+    "LICENSE",
+    "package.json"
+  ],
+  "dependencies": {
+    "@arki/contracts": "0.4.1",
+    "@arki/failure": "0.3.0",
+    "@arki/icons": "0.2.0",
+    "@arki/log": "0.4.0",
+    "@arki/schema": "0.3.0",
+    "@arki/ui": "0.2.0",
+    "@orpc/client": "^1.15.5",
+    "@orpc/contract": "^1.15.5",
+    "@orpc/server": "^1.15.5",
+    "@orpc/tanstack-query": "^1.15.5",
+    "@sentry/core": "^11.6.0",
+    "@tanstack/react-devtools": "^0.10.13",
+    "@tanstack/react-query": "5.104.1",
+    "@tanstack/react-query-devtools": "^5.104.1",
+    "@tanstack/react-router": "1.170.45",
+    "@tanstack/react-router-devtools": "1.167.2",
+    "@tanstack/react-start": "1.169.3",
+    "@unpic/react": "^1.0.2",
+    "@vitejs/plugin-react": "6.1.2",
+    "jotai": "^3.0.1",
+    "jotai-devtools": "^0.15.1",
+    "superjson": "latest",
+    "vite": "8.3.4",
+    "vite-plugin-pwa": "^2.0.0",
+    "workbox-precaching": "^7.4.1",
+    "workbox-routing": "^7.4.1",
+    "workbox-strategies": "^7.4.1",
+    "zod": "4.6.5"
+  },
+  "peerDependencies": {
+    "@arki/dot": "^0.10.0",
+    "@arki/schedule": "^0.1.1",
+    "@orpc/openapi": "^1.15.5",
+    "@sentry/node": "^11.6.0",
+    "@sentry/react": "^11.6.0",
+    "@sentry/tanstackstart-react": "^11.6.0",
+    "nitro": "^3.0.260903-beta",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "peerDependenciesMeta": {
+    "@arki/dot": {
+      "optional": true
+    },
+    "@arki/schedule": {
+      "optional": true
+    },
+    "@orpc/openapi": {
+      "optional": true
+    },
+    "@sentry/node": {
+      "optional": true
+    },
+    "@sentry/react": {
+      "optional": true
+    },
+    "@sentry/tanstackstart-react": {
+      "optional": true
+    },
+    "nitro": {
+      "optional": true
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "arki": {
+    "bundlerOnly": [
+      "./error",
+      "./devtools",
+      "./pwa/sw"
+    ]
+  }
+}
