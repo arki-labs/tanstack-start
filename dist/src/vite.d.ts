@@ -10,6 +10,9 @@ import type { Plugin } from 'vite';
  * conditions. No-op for the client/SSR bundles themselves — TanStack Start
  * already strips `server.handlers` from the client output.
  *
+ * Bundles every `@arki/*` package into the SSR build, next to the app's own
+ * `ssr.noExternal` entries (Vite merges the lists). See `BUNDLED_IN_SSR`.
+ *
  * Also installs a Nitro module (Nitro's Vite plugin installs any plugin's
  * `nitro` field) so a missing `/assets/*` file is never cached as a 404 for a
  * year. See `missingAssetsNotCached`.
