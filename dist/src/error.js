@@ -17,6 +17,7 @@ import { cn } from '@arki/ui/utils';
 import { captureException } from './sentry-bridge.js';
 export function RootErrorComponent({ error, info, reset, className }) {
     const normalized = normalizeError(error);
+    // eslint-disable-next-line turbo/no-undeclared-env-vars -- Vite's build-mode flag, not an environment variable
     const isDev = import.meta.env.DEV;
     // Forward to Sentry via the local bridge. No-op when the host app
     // hasn't called `initSentryClient` — which avoids pulling `@sentry/*`

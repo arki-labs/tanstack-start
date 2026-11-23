@@ -19,7 +19,6 @@
  * with Sentry activating only when a valid DSN is actually set.
  */
 import type { Integration } from '@sentry/core';
-import * as Sentry from '@sentry/node';
 export type InitSentryServerOptions = {
     /**
      * Sentry DSN. When missing, empty, whitespace-only, or malformed,
@@ -36,5 +35,5 @@ export type InitSentryServerOptions = {
 };
 export declare function initSentryServer(options: InitSentryServerOptions): void;
 export { sentryGlobalFunctionMiddleware, sentryGlobalRequestMiddleware, wrapFetchWithSentry, wrapMiddlewaresWithSentry, } from '@sentry/tanstackstart-react';
-export { Sentry };
+export * as Sentry from '@sentry/node';
 //# sourceMappingURL=sentry-server.d.ts.map

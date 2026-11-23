@@ -2,7 +2,9 @@ import * as Sentry from '@sentry/react';
 import { registerSentryCapture } from './sentry-bridge.js';
 import { sentryDataCollection } from './sentry-data-collection.js';
 export function initSentryClient(options) {
-    const { dsn, environment = import.meta.env.MODE, release, tracesSampleRate = import.meta.env.DEV ? 1.0 : 0.1, replaysSessionSampleRate = 0, replaysOnErrorSampleRate = 1.0, integrations: extraIntegrations = [], } = options;
+    const { dsn, environment = import.meta.env.MODE, release, 
+    // eslint-disable-next-line turbo/no-undeclared-env-vars -- Vite's build-mode flag, not an environment variable
+    tracesSampleRate = import.meta.env.DEV ? 1 : 0.1, replaysSessionSampleRate = 0, replaysOnErrorSampleRate = 1, integrations: extraIntegrations = [], } = options;
     const normalizedDsn = typeof dsn === 'string' ? dsn.trim() : '';
     if (!normalizedDsn)
         return;
@@ -32,5 +34,5 @@ export function initSentryClient(options) {
         Sentry.captureException(error, hint);
     });
 }
-export { Sentry };
+export * as Sentry from '@sentry/react';
 //# sourceMappingURL=sentry-client.js.map

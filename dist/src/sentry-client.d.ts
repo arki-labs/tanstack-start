@@ -13,7 +13,6 @@
  * with Sentry activating only when a valid DSN is actually set.
  */
 import type { Integration } from '@sentry/core';
-import * as Sentry from '@sentry/react';
 export type InitSentryClientOptions = {
     /**
      * Sentry DSN. When missing, empty, whitespace-only, or malformed,
@@ -54,5 +53,5 @@ export type InitSentryClientOptions = {
     integrations?: Integration[];
 };
 export declare function initSentryClient(options: InitSentryClientOptions): void;
-export { Sentry };
+export * as Sentry from '@sentry/react';
 //# sourceMappingURL=sentry-client.d.ts.map

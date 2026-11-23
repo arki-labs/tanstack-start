@@ -52,9 +52,14 @@ function describe(value) {
         return 'null';
     if (value === undefined)
         return 'undefined';
-    const t = typeof value;
-    if (t !== 'object')
-        return `${t}(${String(value).slice(0, 80)})`;
+    if (typeof value === 'string' ||
+        typeof value === 'number' ||
+        typeof value === 'boolean' ||
+        typeof value === 'bigint' ||
+        typeof value === 'symbol' ||
+        typeof value === 'function') {
+        return `${typeof value}(${String(value).slice(0, 80)})`;
+    }
     return `${value.constructor?.name ?? 'object'} (${Object.prototype.toString.call(value)})`;
 }
 function normalizeError(error) {
@@ -123,10 +128,10 @@ function renderDevErrorPage(error, request, kind) {
 }
 function escapeHtml(input) {
     return input
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;');
 }
 const MINIMAL_PROD_HTML = `<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"/><title>Internal Server Error</title></head>

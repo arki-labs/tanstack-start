@@ -3,7 +3,7 @@ import { registerSentryCapture } from './sentry-bridge.js';
 import { sentryDataCollection } from './sentry-data-collection.js';
 const isDev = process.env.NODE_ENV !== 'production';
 export function initSentryServer(options) {
-    const { dsn, environment = process.env.NODE_ENV ?? 'development', release, tracesSampleRate = isDev ? 1.0 : 0.1, integrations: extraIntegrations = [], } = options;
+    const { dsn, environment = process.env.NODE_ENV ?? 'development', release, tracesSampleRate = isDev ? 1 : 0.1, integrations: extraIntegrations = [], } = options;
     const normalizedDsn = typeof dsn === 'string' ? dsn.trim() : '';
     if (!normalizedDsn)
         return;
@@ -32,5 +32,5 @@ export function initSentryServer(options) {
 // (`createMiddleware().server(...)`) to wrap server functions and route
 // loaders. See https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/.
 export { sentryGlobalFunctionMiddleware, sentryGlobalRequestMiddleware, wrapFetchWithSentry, wrapMiddlewaresWithSentry, } from '@sentry/tanstackstart-react';
-export { Sentry };
+export * as Sentry from '@sentry/node';
 //# sourceMappingURL=sentry-server.js.map

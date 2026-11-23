@@ -1,4 +1,4 @@
-Read-only mirror of `@arki/tanstack-start` v0.3.1. Source and issues: arki-labs/arki. Docs: https://arki.dev/packages/tanstack-start. Published 2026-11-04 with provenance https://www.npmjs.com/package/@arki/tanstack-start/v/0.3.1#provenance.
+Read-only mirror of `@arki/tanstack-start` v0.3.2. Source and issues: arki-labs/arki. Docs: https://arki.dev/packages/tanstack-start. Published 2026-11-23 with provenance https://www.npmjs.com/package/@arki/tanstack-start/v/0.3.2#provenance.
 
 # @arki/tanstack-start
 
@@ -47,6 +47,18 @@ The entries are split by where they run, as the `exports` map says.
 `./error`, `./devtools` and `./pwa/sw` load only inside a bundler or a service worker. `package.json` lists them in `arki.bundlerOnly`, so the release smoke checks them with a Vite build, not a plain Node import. The root entry does not re-export `RootErrorComponent` or `DevTools`, so `@arki/tanstack-start` imports in plain Node. Import them from `./error` and `./devtools`.
 
 The devtools render nothing in production. `useKeysetQuery` and `useOptimisticMutation` need React and TanStack Query.
+
+<!-- runtimes:start -->
+| Runtime | Result | Version tested | Date (UTC) |
+| --- | --- | --- | --- |
+| node | pass | v22.13.1 | 2026-11-05 |
+| bun | pass | 1.4.2 | 2026-11-05 |
+| deno | pass | 2.9.8 | 2026-11-05 |
+| browser | n/a | - | 2026-11-05 |
+| hermes | n/a | - | 2026-11-05 |
+
+- `./error` runs on node, bun, deno, bundled (bundler-only entry) (`scripts/smoke/error.mjs`).
+<!-- runtimes:end -->
 
 ## Public imports
 
@@ -249,6 +261,10 @@ The header is trusted as sent. Behind a proxy that overwrites it, that is correc
 - Concurrent optimistic edits to one key are last-writer-wins until the refetch.
 - Optimistic rollback is local cache only. It never reverses a database write, a job or an email.
 - `withForwardedProto` copies only GET and HEAD requests.
+
+## Observability
+
+No spans or metrics of its own. The request span belongs to the app server (Nitro, or `@arki/http` when it is mounted), procedures are spanned by oRPC, and the `@arki/tanstack-start/dot` mounts hand each request to the package behind it (oRPC, `@arki/auth`, `@arki/schedule`), which spans its own work (`auth.handler` for the auth mount). Errors go to `@arki/log` and, when configured, Sentry.
 
 ## Documentation
 

@@ -1,16 +1,4 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
-/// <reference types="vite/client" />
-/**
- * Environment panel for the unified devtools shell.
- *
- * Shows the runtime stats developers actually need at a glance — locale,
- * mode, Sentry status — plus quick actions to verify the error and
- * storage setup without opening DevTools.
- *
- * Lives in `@arki/tanstack-start` so every Start app gets the same panel.
- * Styled with inline tokens (no Tailwind dep) so the panel works even
- * when the app's stylesheet hasn't loaded.
- */
 import { useEffect, useState } from 'react';
 const containerStyle = {
     fontFamily: 'ui-sans-serif, system-ui, -apple-system, sans-serif',
@@ -74,7 +62,7 @@ function readEnvironmentRows(now) {
     const viewport = isBrowser ? `${window.innerWidth}×${window.innerHeight}` : '–';
     const ua = isBrowser ? shortUserAgent(navigator.userAgent) : '–';
     return [
-        { label: 'Mode', value: String(env.MODE ?? '–') },
+        { label: 'Mode', value: typeof env.MODE === 'string' ? env.MODE : '–' },
         { label: 'Vite DEV', value: env.DEV ? 'true' : 'false' },
         { label: 'Vite SSR', value: env.SSR ? 'true' : 'false' },
         { label: 'Document language', value: docLang },
@@ -87,7 +75,7 @@ function readEnvironmentRows(now) {
 }
 function shortUserAgent(ua) {
     // Pull out the first browser token (e.g. "Chrome/138.0.0.0") for brevity.
-    const match = ua.match(/(Firefox|Chrome|Safari|Edg|OPR)\/[\d.]+/);
+    const match = ua.match(/(?:Firefox|Chrome|Safari|Edg|OPR)\/[\d.]+/);
     return match ? match[0] : ua.slice(0, 40);
 }
 export function EnvironmentPanel() {
@@ -113,21 +101,21 @@ export function EnvironmentPanel() {
                                         sessionStorage.clear();
                                         location.reload();
                                     }
-                                    catch (err) {
-                                        console.warn('[devtools] clear-storage failed', err);
+                                    catch (error) {
+                                        console.warn('[devtools] clear-storage failed', error);
                                     }
                                 }, title: "Clears localStorage + sessionStorage and reloads.", children: "Clear storage + reload" }), _jsx("button", { type: "button", style: buttonStyle, onClick: () => {
                                     try {
-                                        document.cookie.split(';').forEach((c) => {
-                                            const name = c.split('=')[0]?.trim();
+                                        for (const cookie of document.cookie.split(';')) {
+                                            const name = cookie.split('=')[0]?.trim();
                                             if (!name)
-                                                return;
+                                                continue;
                                             document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
-                                        });
+                                        }
                                         location.reload();
                                     }
-                                    catch (err) {
-                                        console.warn('[devtools] clear-cookies failed', err);
+                                    catch (error) {
+                                        console.warn('[devtools] clear-cookies failed', error);
                                     }
                                 }, title: "Clears cookies for this origin (path=/) and reloads.", children: "Clear cookies + reload" })] })] }), _jsxs("section", { style: sectionStyle, children: [_jsx("p", { style: sectionLabelStyle, children: "Tip" }), _jsxs("p", { style: { margin: 0, opacity: 0.7 }, children: ["Toggle this panel any time with ", _jsx("kbd", { children: "Shift" }), "+", _jsx("kbd", { children: "Alt" }), "+", _jsx("kbd", { children: "D" }), ". Settings persist in localStorage."] })] })] }));
 }

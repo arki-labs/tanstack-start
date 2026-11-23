@@ -1,4 +1,4 @@
-import { resolve } from 'node:path';
+import path from 'node:path';
 /**
  * Packages whose server-only subpaths are reached from the client module graph
  * **only** through TanStack Start `server.handlers` (which are stripped from the
@@ -52,7 +52,7 @@ const missingAssetsNotCached = {
         const assetsDir = nitro.options.buildAssetsDir ?? 'assets';
         nitro.options.publicAssets.push({
             baseURL: `/${assetsDir}`,
-            dir: resolve(nitro.options.output.publicDir, assetsDir),
+            dir: path.resolve(nitro.options.output.publicDir, assetsDir),
             fallthrough: false,
         });
     },
